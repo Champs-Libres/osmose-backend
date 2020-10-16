@@ -385,7 +385,21 @@ def run(conf, logger, analysers, options):
 
 def main(options):
 
-    analysers_path = os.path.join(os.path.dirname(__file__), "analysers")
+    if options.cron:
+        output = sys.stdout
+        logger = OsmoseLog.logger(output, False)
+    else:
+        output = sys.stdout
+        logger = OsmoseLog.logger(output, True)
+
+    if options.analyser_dir is not None:
+        analysers_path = os.path.abspath(options.analyser_dir)
+        if os.path.isdir(analysers_path) is False:
+            logger.log(f"the path {analysers_path} specified in --analyser-dir is not found or accessible")
+            return 1
+    else:
+        analysers_path = os.path.join(os.path.dirname(__file__), "analysers") 
+    logger.log(f"path for analyser is {analysers_path}")
 
     if options.list_analyser:
         for fn in sorted(os.listdir(analysers_path)):
@@ -398,13 +412,6 @@ def main(options):
            print(k)
         return 0
 
-    if options.cron:
-        output = sys.stdout
-        logger = OsmoseLog.logger(output, False)
-    else:
-        output = sys.stdout
-        logger = OsmoseLog.logger(output, True)
-
     if options.change_init and not options.change:
         logger.log(logger.log_av_b+"--change must be specified "+logger.log_ap)
         return 1
@@ -415,8 +422,18 @@ def main(options):
 
     logger.log("osmose backend version: %s" % get_version())
 
+    # we fixe sys.path to load analysers
     old_path = list(sys.path)
-    sys.path.insert(0, analysers_path)
+    if options.analyser_dir is not None:
+        analysers_custom_dir, analysers_mod_name = os.path.split(analysers_path)
+        if analysers_mod_name == 'analysers':
+            logger.log("The path containing analysers should not be name 'analysers', to avoid conflict with built-in osmose analysers package name")
+            return 1
+        sys.path.insert(0, analysers_custom_dir)
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "analysers"))
+    else:
+        analysers_mod_name = 'analysers'
+        sys.path.insert(0, analysers_path)
 
     logger.log(logger.log_av_green+"loading analyses "+logger.log_ap)
     analysers = {}
@@ -426,7 +443,7 @@ def main(options):
                 continue
             logger.log("  load "+fn[9:-3])
             try:
-                analysers[fn[9:-3]] = importlib.import_module("analysers." + fn[:-3])
+                analysers[fn[9:-3]] = importlib.import_module(analysers_mod_name + "." + fn[:-3])
             except ImportError as e:
                 logger.log(e)
                 logger.log("Fails to load analysers {0}".format(fn[:-3]))
@@ -500,6 +517,8 @@ if __name__ == "__main__":
                       help="Analyser to run (can be repeated)")
     parser.add_option("--plugin", dest="plugin", action="append",
                       help="Plugin to run (can be repeated). For analyser 'sax' only")
+    parser.add_option("--analyser-dir", dest="analyser_dir",
+                      help="Directory where analysers are stored. Cannot be name \"analysers\"")
 
     parser.add_option("--change", dest="change", action="store_true",
                       help="Run analyser on change mode when available")
