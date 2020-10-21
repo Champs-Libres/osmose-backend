@@ -58,7 +58,7 @@ def xml_to_sql(node, table_name=None):
     else:
         print(f'ERROR {node.tag}')
 
-analysers_path = "/opt/osmose-backend/analysers/xml-analysers/"
+analysers_path = "/var/lib/osmose-back/xml-analysers"
 
 basic_requests = {
     'nodes': {'obj': 'node', 'geom': 'point'},
