@@ -131,7 +131,7 @@ def issues_file_from_fromat(dst, format, bz2 = False, version = None, polygon_id
     return c(dst, version, polygon_id)
 
 
-def execc(conf, logger, analysers, options, osmosis_manager):
+def execc(conf, logger, analysers, analysers_mod_name, options, osmosis_manager):
     err_code = 0
 
     ## download and create database
@@ -208,7 +208,7 @@ def execc(conf, logger, analysers, options, osmosis_manager):
             analyser_conf = analyser_config(conf, options, osmosis_manager, xml_change)
 
             for name, obj in inspect.getmembers(analysers[analyser]):
-                if (inspect.isclass(obj) and obj.__module__ == "analysers.analyser_" + analyser and
+                if (inspect.isclass(obj) and obj.__module__ == f"{analysers_mod_name}.analyser_" + analyser and
                     (name.startswith("Analyser") or name.startswith("analyser"))):
                     analyser_name = name[len("Analyser_"):]
                     resume = options.resume or (options.resume_analyser and analyser in options.resume_analyser)
@@ -307,7 +307,6 @@ def execc(conf, logger, analysers, options, osmosis_manager):
 
                         if not update_finished:
                             err_code |= 1
-
         except:
             tb = traceback.format_exc()
             logger.sub().err("error on analyse {0}...".format(analyser))
@@ -358,7 +357,7 @@ def clean(conf, logger, options, osmosis_manager):
 
 ###########################################################################
 
-def run(conf, logger, analysers, options):
+def run(conf, logger, analysers, analysers_mod_name, options):
     err = check(conf, logger, options)
     if err != 0:
         return err
@@ -373,7 +372,7 @@ def run(conf, logger, analysers, options):
                 logger.err(u"error in database initialisation")
                 return 0x10
 
-        return execc(conf, logger, analysers, options, osmosis_manager)
+        return execc(conf, logger, analysers, analysers_mod_name, options, osmosis_manager)
     except:
         # Log error in case finally also fails
         traceback.print_exc()
@@ -488,7 +487,7 @@ def main(options):
         options.diff = not options.change and "diff" in country_conf.download
 
         # analyse
-        err_code |= run(country_conf, logger, analysers, options)
+        err_code |= run(country_conf, logger, analysers, analysers_mod_name, options)
 
         # free lock
         del lock
