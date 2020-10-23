@@ -391,14 +391,14 @@ def main(options):
         output = sys.stdout
         logger = OsmoseLog.logger(output, True)
 
-    if options.analyser_dir is not None:
+    if options.analyser_dir:
         analysers_path = os.path.abspath(options.analyser_dir)
         if os.path.isdir(analysers_path) is False:
             logger.log(f"the path {analysers_path} specified in --analyser-dir is not found or accessible")
             return 1
+        logger.log(f"path for analyser is moved to {analysers_path}")
     else:
         analysers_path = os.path.join(os.path.dirname(__file__), "analysers") 
-    logger.log(f"path for analyser is {analysers_path}")
 
     if options.list_analyser:
         for fn in sorted(os.listdir(analysers_path)):
